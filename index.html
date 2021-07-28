@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>SVG Git Graph</title>
+
+<script defer>
+  //                      git   command    option          argument
+  const rCommand = /^\$\s*git\s+([^\s]+)\s+(?:(-[\w]+)\s+)?([^$]+)$/
+
+  function gitGraph (figure) {
+    const sourceElement = figure.querySelector("pre")
+    const sourceContent = sourceElement.innerHTML
+      .trim()
+      .split('\n')
+      .map((line) => line.trim())
+    const gitCommands = sourceContent
+      .map((line) => rCommand.exec(line))
+      .filter(Boolean)
+      .map((results) => results.slice(1))
+    const history = gitCommands
+      .reduce(gitHistory, {db: {branches: []}, head: null})
+    console.log(JSON.stringify(history.db, null, 4))
+
+    sourceElement.innerHTML = sourceContent.join('\n')
+  }
+
+  function gitHistory ({db, head}, [command, option, argument]) {
+    const nonSHA = Math.random().toString(36).slice(2, 7).toUpperCase()
+
+    switch (command.toLowerCase()) {
+      case 'checkout':
+        if (option === '-b') {
+          db[argument] = nonSHA
+          db[db[argument]] = {
+            links: db[head] ? [db[head]] : []
+          }
+        }
+
+        if (!db.branches.includes(argument)) {
+          db.branches.push(argument)
+        }
+
+        head = argument
+        break
+      case 'commit':
+        db[nonSHA] = {
+          comment: argument.replace(/^"|"$/g, ""),
+          links: [db[head]]
+        }
+        db[head] = nonSHA
+        break
+      case 'merge':
+        db[nonSHA] = {
+          comment: `Merge branch '${argument}' into '${head}'`,
+          links: [head, argument]
+        }
+        db[head] = nonSHA
+        break
+      case 'tag':
+        if (db[argument]) {
+          db[db[argument]].tags = db[db[argument]].tags
+            .filter((tag) => tag !== argument)
+        }
+
+        db[db[head]].tags = db[db[head]].tags
+          ? db[db[head]].tags.concat(argument)
+          : [argument]
+        db[argument] = db[head]
+        break
+      default:
+        break
+    }
+
+    return {db, head}
+  }
+
+  function ready () {
+    Array.from(document.querySelectorAll("figure"))
+      .map(gitGraph)
+
+    // setTimeout(() => {document.location = document.location}, 15000)
+  }
+
+  window.addEventListener("DOMContentLoaded", ready)
+</script>
+
+<style media="screen">
+  .gitGraph pre {
+    background: #444;
+    color: #DDD;
+    margin: 2ex 0;
+    padding: 3ex;
+  }
+
+  .gitGraph svg {
+    height: 0;
+    position: relative;
+    width: 100%;
+  }
+</style>
+</head>
+<body>
+
+<figure class="gitGraph">
+  <svg></svg>
+
+  <!-- # this is where the example begins -->
+  <pre>
+    $ git checkout -b main
+
+    $ git tag v1.0.0
+
+    $ git tag latest
+
+    $ git tag release-candidate
+
+    $ git tag stable
+
+    $ git commit -m "initial commit"
+
+    $ git checkout -b story-313
+
+    $ git commit -m "story development"
+
+    $ git commit -m "unit testing"
+
+    $ git checkout main
+
+    $ git merge story-313
+
+    $ git tag v1.1.0
+
+    $ git tag latest
+
+    $ git tag release-candidate
+  </pre>
+</figure>
+
+</body>
+</html>
