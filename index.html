@@ -4,16 +4,12 @@
 <meta charset="utf-8" />
 <title>SVG Git Graph</title>
 
-<script async defer src="./svg-git-graph.js"></script>
+<script defer src="./svg-git-graph.js"></script>
 <script defer>
-  function ready () {
+  window.addEventListener("DOMContentLoaded", () => {
     Array.from(document.querySelectorAll("figure"))
       .map(gitGraph)
-
-    // setTimeout(() => {document.location = document.location}, 15000)
-  }
-
-  window.addEventListener("DOMContentLoaded", ready)
+  })
 </script>
 
 <style media="screen">
@@ -25,9 +21,12 @@
   }
 
   .gitGraph svg {
-    height: 0;
-    position: relative;
+    box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.1);
     width: 100%;
+  }
+
+  .gitGraph .graphText {
+    font-family: monospace, sans-serif;
   }
 </style>
 </head>
@@ -38,31 +37,21 @@
 
   <pre>
     $ git checkout -b main
-
-    $ git commit -m "initial commit"
-
+    $ git commit -m "prior development"
     $ git tag v1.0.0
-
     $ git tag latest
-
     $ git tag release-candidate
-
     $ git tag stable
-
     $ git checkout -b story-313
-
-    $ git commit -m "story development"
-
-    $ git commit -m "unit testing"
-
+    $ git commit -m "make it work"
+    $ git commit -m "make it better"
+    $ git commit -m "make it fast"
+    $ git checkout -b another
+    $ git commit -m "testing something out"
     $ git checkout main
-
     $ git merge story-313
-
     $ git tag v1.1.0
-
     $ git tag latest
-
     $ git tag release-candidate
   </pre>
 </figure>
