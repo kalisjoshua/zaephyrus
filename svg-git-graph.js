@@ -1,219 +1,292 @@
-// TODO: make embed-able as a single js file
 // TODO: animation of the progress through time
 
 const gitGraph = (function () {
-  const defaults = {
-    colors: [
-      "#603AA1",
-      "#1C6EF2",
-      "#298540",
-      "#D47500",
-      "#C8102E",
-    ],
-    gridSize: 40,
-    pointSize: 10,
-    strokeWidth: 8,
-  }
-
-  const createId = () => Math.random().toString(36).toLowerCase()
-  const element = (type) => document.createElement(type)
+  const createElement = (type) => document.createElement(type)
+  const drawGraph = (gitCommands, options = {}) => new Graph(gitCommands, options)
+  const mockSHA = () => Math.random().toString(36).slice(2, 7).toLowerCase()
   // [fake commands]  $   git   command    [options]       argument
   const rCommand = /^\$\s*git\s+([^\s]+)\s+(?:(-[\w]+)\s+)?([^$]+)$/
-  const setAttributes = (x, z) => z.forEach(([k, v]) => x.setAttribute(k, v))
+  const setAttributes = (x, l) => l.forEach(([k, v]) => x.setAttribute(k, v))
   const shape = (t) => document.createElementNS("http://www.w3.org/2000/svg", t)
   const use = (e, fn) => fn(e)
 
-  function buildHistory ({branches, head, log, objects, snapshots, tags}, matches) {
-    const id = Math.random().toString(36).slice(2, 7).toUpperCase()
-    const [command, option, argument] = matches
-    let stateChange = true
+  const style = createElement("style")
 
-    switch (command.toLowerCase()) {
-      case 'checkout':
-        if (option === '-b') {
-          branches[argument] = {
-            head: null,
-            links: branches[head] ? [branches[head].head] : null,
+  style.textContent = `
+    body {
+      margin: 0 auto;
+      max-width: 60em;
+    }
+
+    figure.gitGraph, figure.gitGraph * {
+      box-sizing: border-box;
+    }
+
+    figure.gitGraph {
+      margin: 0;
+      padding: 0;
+      position: relative;
+    }
+
+    figure.gitGraph div {
+      left: 0;
+      overflow: scroll;
+      position: absolute;
+      top: 0;
+    }
+
+    figure.gitGraph ol {
+      display: flex;
+      flex-direction: column-reverse;
+      justify-content: space-around;
+      margin: 0;
+      padding: 0;
+    }
+
+    figure.gitGraph ol li {
+      font-family: monospace, sans-serif;
+      list-style-type: none;
+      white-space: nowrap;
+    }
+
+    figure.gitGraph svg {
+      box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.1);
+      width: 100%;
+    }
+
+    figure.gitGraph .branch {
+      border: 1px solid;
+      border-radius: 5px;
+      margin-right: 1ex;
+      padding: 0 1ex;
+    }
+
+    figure.gitGraph .tag {
+      background: gainsboro;
+      border: 1px solid gainsboro;
+      border-radius: 5px;
+      margin-right: 1ex;
+      padding: 0 1ex;
+    }
+  `
+
+  class Graph {
+    constructor (commandsElement, options = {}) {
+      this.options = {
+        colors: [
+          "#603AA1",
+          "#1C6EF2",
+          "#298540",
+          "#D47500",
+          "#C8102E",
+        ],
+        gridSize: 40,
+        pointSize: 10,
+        strokeWidth: 8,
+        ...options
+      }
+
+      this.branches = {}
+      this.head = null
+      this.log = []
+      this.objects = {}
+      this.snapshots = []
+      this.tags = {}
+
+      this.parse(commandsElement.textContent)
+
+      const figure = createElement("figure")
+
+      figure.setAttribute("class", "gitGraph")
+
+      commandsElement.after(figure)
+      commandsElement.remove()
+
+      this.render(figure)
+    }
+
+    executeCommand (command, option, argument) {
+      const id = mockSHA()
+      let stateChange = true
+
+      switch (command.toLowerCase()) {
+        case 'checkout':
+          if (option === '-b') {
+            this.branches[argument] = {
+              head: null,
+              links: this.branches[this.head] ? [this.branches[this.head].head] : null,
+            }
+          } else if (!this.branches[argument]) {
+            throw new Error(`Branch '${argument}' not available.`)
           }
-        } else if (!branches[argument]) {
-          throw new Error(`Branch '${argument}' not available.`)
-        }
 
-        stateChange = false
+          stateChange = false
 
-        head = argument
-        break
-      case 'commit':
-        objects[id] = {
-          branch: head,
-          comment: argument.replace(/^"|"$/g, ""),
-          links: branches[head].head
-            ? [branches[head].head]
-            : branches[head].links,
-        }
-        branches[head].head = id
-        log.push(id)
-        break
-      case 'merge':
-        objects[id] = {
-          branch: head,
-          comment: `Merge branch '${argument}' into '${head}'`,
-          links: [branches[head].head, branches[argument].head],
-        }
-        branches[head].head = id
-        log.push(id)
-        break
-      case 'tag':
-        if (tags[argument]) {
-          objects[tags[argument]].tags = objects[tags[argument]].tags
-            .filter((tag) => tag !== argument)
-        }
+          this.head = argument
+          break
+        case 'commit':
+          this.objects[id] = {
+            branch: this.head,
+            comment: argument.replace(/^"|"$/g, ""),
+            links: this.branches[this.head].head
+              ? [this.branches[this.head].head]
+              : this.branches[this.head].links,
+          }
+          this.branches[this.head].head = id
+          this.log.push(id)
+          break
+        case 'merge':
+          this.objects[id] = {
+            branch: this.head,
+            comment: `Merge branch '${argument}' into '${this.head}'`,
+            links: [this.branches[this.head].head, this.branches[argument].head],
+          }
+          this.branches[this.head].head = id
+          this.log.push(id)
+          break
+        case 'tag':
+          if (this.tags[argument]) {
+            this.objects[this.tags[argument]].tags = this.objects[this.tags[argument]].tags
+              .filter((tag) => tag !== argument)
+          }
 
-        (function (current) {
-          current.tags = (current.tags || [])
-            .concat(argument)
-        }(objects[branches[head].head]))
+          (function (current) {
+            current.tags = (current.tags || [])
+              .concat(argument)
+          }(this.objects[this.branches[this.head].head]))
 
-        tags[argument] = branches[head].head
-        break
-      default:
-        throw new Error(`Unrecognized git command '${[command, option, argument].filter(Boolean).join(' ')}'`)
-        break
+          this.tags[argument] = this.branches[this.head].head
+          break
+        default:
+          throw new Error(`Unrecognized git command '${[command, option, argument].filter(Boolean).join(' ')}'`)
+          break
+      }
+
+      if (stateChange) {
+        this.snapshots
+          .push(JSON.stringify(this))
+      }
     }
 
-    if (stateChange) {
-      snapshots.push(JSON.stringify({branches, head, log, objects, tags}))
+    parse (input) {
+      input
+        .trim()
+        .split('\n')
+        .forEach((line) => {
+          const result = rCommand.exec(line.trim())
+
+          if (result) {
+            this.executeCommand(...result.slice(1))
+          }
+        })
     }
 
-    return {branches, head, log, objects, snapshots, tags}
-  }
+    render (figure) {
+      const branchNames = Array.from(new Set(this.log
+        .map((sha) => this.objects[sha].branch)))
+      const branchOrder = (name) => branchNames.indexOf(name) + 1
+      const graphHeight = (this.log.length + 1) * this.options.gridSize
+      const graphWidth = this.options.gridSize * (branchNames.length + 1)
 
-  function createGraphElement (sourceElement) {
-    const figure = element("figure")
-    const state = sourceElement.textContent
-      .trim()
-      .split('\n')
-      .map((line) => rCommand.exec(line.trim()))
-      .filter(Boolean)
-      .map((results) => results.slice(1))
-      .reduce(buildHistory, {
-        branches: {},
-        head: null,
-        log: [],
-        objects: {},
-        snapshots: [],
-        tags: {},
-      })
+      const historyContainer = createElement("div")
+      const historyElement = createElement("ol")
+      const svgGraph = shape("svg")
 
-    figure.setAttribute("class", "gitGraph")
-    figure.appendChild(shape("svg"))
-    sourceElement.after(figure)
-    sourceElement.remove()
+      historyContainer.style = `
+        height: ${graphHeight}px;
+        margin-left: ${graphWidth}px;
+        width: calc(100% - ${graphWidth}px);
+      `
 
-    return {figure, state}
-  }
+      historyElement.style = `
+        height: ${graphHeight}px;
+        padding: ${this.options.gridSize / 2}px 0;
+      `
 
-  function createGraphPieces (acc, sha, index) {
-    const object = this.repo.objects[sha]
+      svgGraph.style.height = `${graphHeight}px`
 
-    const dot = shape("circle")
-    const cx = this.options.gridSize * this.branchOrder(object.branch)
-    const cy = this.options.gridSize * (this.repo.log.length - index)
-    const fill = this.options.colors[this.branchOrder(object.branch) - 1]
-    const item = element("li")
-    const text = element("text")
+      figure.appendChild(historyContainer)
+      figure.appendChild(svgGraph)
+      historyContainer.appendChild(historyElement)
 
-    if (object.links) {
-      object.links
-        .forEach((sha, index) => {
-          const parent = acc.filter((el) => el.dataset.sha === sha)[0]
-          const line = shape("line")
-          const strokeColor = object.links.length === 2
-            ? parent.getAttribute("fill")
-            : fill
+      this.log
+        .reduce((acc, sha, index) => {
+          const object = this.objects[sha]
 
-          setAttributes(line, [
-            ["x1", cx],
-            ["y1", cy],
-            ["x2", parent.getAttribute("cx")],
-            ["y2", parent.getAttribute("cy")],
-            ["stroke", strokeColor],
-            ["stroke-width", this.options.strokeWidth],
+          const dot = shape("circle")
+          const cx = this.options.gridSize * branchOrder(object.branch)
+          const cy = this.options.gridSize * (this.log.length - index)
+          const fill = this.options.colors[branchOrder(object.branch) - 1]
+          const item = createElement("li")
+          const text = createElement("text")
+
+          if (object.links) {
+            object.links
+              .forEach((sha, index) => {
+                const parent = acc.filter((el) => el.dataset.sha === sha)[0]
+                const line = shape("line")
+                const strokeColor = object.links.length === 2
+                  ? parent.getAttribute("fill")
+                  : fill
+
+                setAttributes(line, [
+                  ["x1", cx],
+                  ["y1", cy],
+                  ["x2", parent.getAttribute("cx")],
+                  ["y2", parent.getAttribute("cy")],
+                  ["stroke", strokeColor],
+                  ["stroke-width", this.options.strokeWidth],
+                ])
+
+                acc.unshift(line)
+              })
+          }
+
+          if (this.branches[object.branch].head === sha) {
+            use(createElement("span"), (e) => {
+              e.setAttribute("class", "branch")
+              e.setAttribute("title", "Git branch name")
+              e.innerText = object.branch
+
+              item.appendChild(e)
+            })
+          }
+
+          if (object.tags) {
+            object.tags
+              .forEach((tag) => {
+                use(createElement("span"), (e) => {
+                  e.setAttribute("class", "tag")
+                  e.setAttribute("title", "Git tag")
+                  e.innerText = tag
+
+                  item.appendChild(e)
+                })
+              })
+          }
+
+          setAttributes(dot, [
+            ["cx", cx],
+            ["cy", cy],
+            ["r", this.options.pointSize],
+            ["fill", fill],
           ])
 
-          acc.unshift(line)
-        })
+          dot.dataset.sha = sha
+          text.innerText = object.comment
+          item.appendChild(text)
+          historyElement.appendChild(item)
+          acc.push(dot)
+
+          return acc
+        }, [])
+        .map((el) => svgGraph.appendChild(el))
     }
-
-    if (this.repo.branches[object.branch].head === sha) {
-      use(element("span"), (e) => {
-        e.setAttribute("class", "branch")
-        e.setAttribute("title", "Git branch name")
-        e.innerText = object.branch
-
-        item.appendChild(e)
-      })
-    }
-
-    if (object.tags) {
-      object.tags
-        .forEach((tag) => {
-          use(element("span"), (e) => {
-            e.setAttribute("class", "tag")
-            e.setAttribute("title", "Git tag")
-            e.innerText = tag
-
-            item.appendChild(e)
-          })
-        })
-    }
-
-    setAttributes(dot, [
-      ["cx", cx],
-      ["cy", cy],
-      ["r", this.options.pointSize],
-      ["fill", fill],
-    ])
-
-    dot.dataset.sha = sha
-    text.innerText = object.comment
-    item.appendChild(text)
-    this.historyElement.appendChild(item)
-    acc.push(dot)
-
-    return acc
-  }
-
-  function drawGraph (gitCommands, options = {}) {
-    options = {...defaults, ...options}
-
-    const {figure, state: {snapshots, ...repo}} = createGraphElement(gitCommands)
-
-    const branchNames = Array.from(new Set(repo.log
-      .map((sha) => repo.objects[sha].branch)))
-    const branchOrder = (name) => branchNames.indexOf(name) + 1
-    const graphHeight = (repo.log.length + 1) * options.gridSize
-    const graphWidth = options.gridSize * (branchNames.length + 1)
-    const historyContainer = element("div")
-    const historyElement = element("ol")
-    const visualElement = figure.querySelector("svg")
-
-    historyContainer.style.marginLeft = `${graphWidth}px`
-    historyContainer.style.width = `calc(100% - ${graphWidth}px)`
-    historyContainer.style.height = graphHeight
-    historyElement.style.height = graphHeight
-    historyElement.style.padding = `${options.gridSize / 2}px 0`
-    visualElement.style.height = graphHeight
-
-    figure.appendChild(historyContainer)
-    historyContainer.appendChild(historyElement)
-
-    repo.log
-      .reduce(createGraphPieces.bind({repo, branchOrder, options, historyElement}), [])
-      .map((el) => visualElement.appendChild(el))
   }
 
   window.addEventListener("DOMContentLoaded", () => {
+    document.head.appendChild(style)
+
     Array.from(document.querySelectorAll('[lang="gitGraph"]'))
       .map(drawGraph)
   })
