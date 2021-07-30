@@ -1,3 +1,6 @@
+// TODO: make embed-able as a single js file
+// TODO: animation of the progress through time
+
 const gitGraph = (function () {
   const defaults = {
     colors: [
@@ -12,11 +15,15 @@ const gitGraph = (function () {
     strokeWidth: 8,
   }
 
-  const setAttributes = (el, list) => list
-    .forEach(([key, value]) => el.setAttribute(key, value))
-  const shape = (type) => document.createElementNS("http://www.w3.org/2000/svg", type)
+  const createId = () => Math.random().toString(36).toLowerCase()
+  const element = (type) => document.createElement(type)
+  // [fake commands]  $   git   command    [options]       argument
+  const rCommand = /^\$\s*git\s+([^\s]+)\s+(?:(-[\w]+)\s+)?([^$]+)$/
+  const setAttributes = (x, z) => z.forEach(([k, v]) => x.setAttribute(k, v))
+  const shape = (t) => document.createElementNS("http://www.w3.org/2000/svg", t)
+  const use = (e, fn) => fn(e)
 
-  function buildHistory ({branches, head, log, moments, objects, tags}, matches) {
+  function buildHistory ({branches, head, log, objects, snapshots, tags}, matches) {
     const id = Math.random().toString(36).slice(2, 7).toUpperCase()
     const [command, option, argument] = matches
     let stateChange = true
@@ -75,104 +82,141 @@ const gitGraph = (function () {
     }
 
     if (stateChange) {
-      moments.push(JSON.stringify({branches, head, log, objects, tags}))
+      snapshots.push(JSON.stringify({branches, head, log, objects, tags}))
     }
 
-    return {branches, head, log, moments, objects, tags}
+    return {branches, head, log, objects, snapshots, tags}
   }
 
-  function gitGraph (figure, options = {}) {
-    options = {...defaults, ...options}
-
-    //                  $   git   command    [options]       argument
-    const rCommand = /^\$\s*git\s+([^\s]+)\s+(?:(-[\w]+)\s+)?([^$]+)$/
-    const sourceElement = figure.querySelector("pre")
-    const sourceContent = sourceElement.innerHTML
+  function createGraphElement (sourceElement) {
+    const figure = element("figure")
+    const state = sourceElement.textContent
       .trim()
       .split('\n')
-      .map((line) => line.trim())
-    const gitCommands = sourceContent
-      .map((line) => rCommand.exec(line))
+      .map((line) => rCommand.exec(line.trim()))
       .filter(Boolean)
       .map((results) => results.slice(1))
-    const {moments, ...repo} = gitCommands
       .reduce(buildHistory, {
         branches: {},
         head: null,
         log: [],
-        moments: [],
         objects: {},
+        snapshots: [],
         tags: {},
       })
-    // console.log(JSON.stringify(repo.log, null, 4))
+
+    figure.setAttribute("class", "gitGraph")
+    figure.appendChild(shape("svg"))
+    sourceElement.after(figure)
+    sourceElement.remove()
+
+    return {figure, state}
+  }
+
+  function createGraphPieces (acc, sha, index) {
+    const object = this.repo.objects[sha]
+
+    const dot = shape("circle")
+    const cx = this.options.gridSize * this.branchOrder(object.branch)
+    const cy = this.options.gridSize * (this.repo.log.length - index)
+    const fill = this.options.colors[this.branchOrder(object.branch) - 1]
+    const item = element("li")
+    const text = element("text")
+
+    if (object.links) {
+      object.links
+        .forEach((sha, index) => {
+          const parent = acc.filter((el) => el.dataset.sha === sha)[0]
+          const line = shape("line")
+          const strokeColor = object.links.length === 2
+            ? parent.getAttribute("fill")
+            : fill
+
+          setAttributes(line, [
+            ["x1", cx],
+            ["y1", cy],
+            ["x2", parent.getAttribute("cx")],
+            ["y2", parent.getAttribute("cy")],
+            ["stroke", strokeColor],
+            ["stroke-width", this.options.strokeWidth],
+          ])
+
+          acc.unshift(line)
+        })
+    }
+
+    if (this.repo.branches[object.branch].head === sha) {
+      use(element("span"), (e) => {
+        e.setAttribute("class", "branch")
+        e.setAttribute("title", "Git branch name")
+        e.innerText = object.branch
+
+        item.appendChild(e)
+      })
+    }
+
+    if (object.tags) {
+      object.tags
+        .forEach((tag) => {
+          use(element("span"), (e) => {
+            e.setAttribute("class", "tag")
+            e.setAttribute("title", "Git tag")
+            e.innerText = tag
+
+            item.appendChild(e)
+          })
+        })
+    }
+
+    setAttributes(dot, [
+      ["cx", cx],
+      ["cy", cy],
+      ["r", this.options.pointSize],
+      ["fill", fill],
+    ])
+
+    dot.dataset.sha = sha
+    text.innerText = object.comment
+    item.appendChild(text)
+    this.historyElement.appendChild(item)
+    acc.push(dot)
+
+    return acc
+  }
+
+  function drawGraph (gitCommands, options = {}) {
+    options = {...defaults, ...options}
+
+    const {figure, state: {snapshots, ...repo}} = createGraphElement(gitCommands)
 
     const branchNames = Array.from(new Set(repo.log
       .map((sha) => repo.objects[sha].branch)))
-    const branchColumn = (name) => branchNames.indexOf(name) + 1
+    const branchOrder = (name) => branchNames.indexOf(name) + 1
+    const graphHeight = (repo.log.length + 1) * options.gridSize
+    const graphWidth = options.gridSize * (branchNames.length + 1)
+    const historyContainer = element("div")
+    const historyElement = element("ol")
     const visualElement = figure.querySelector("svg")
 
-    sourceElement.innerHTML = sourceContent.join('\n')
+    historyContainer.style.marginLeft = `${graphWidth}px`
+    historyContainer.style.width = `calc(100% - ${graphWidth}px)`
+    historyContainer.style.height = graphHeight
+    historyElement.style.height = graphHeight
+    historyElement.style.padding = `${options.gridSize / 2}px 0`
+    visualElement.style.height = graphHeight
 
-    visualElement.style.height = (repo.log.length + 1) * options.gridSize
+    figure.appendChild(historyContainer)
+    historyContainer.appendChild(historyElement)
 
     repo.log
-      .reduce((acc, sha, index) => {
-        const object = repo.objects[sha]
-
-        const dot = shape("circle")
-        const cx = options.gridSize * branchColumn(object.branch)
-        const cy = options.gridSize * (repo.log.length - index)
-        const fill = options.colors[branchColumn(object.branch) - 1]
-
-        if (object.links) {
-          object.links
-            .forEach((sha, index) => {
-              const parent = acc.filter((el) => el.dataset.sha === sha)[0]
-              const line = shape("line")
-              const strokeColor = object.links.length === 2
-                ? parent.getAttribute("fill")
-                : fill
-
-              setAttributes(line, [
-                ["x1", cx],
-                ["y1", cy],
-                ["x2", parent.getAttribute("cx")],
-                ["y2", parent.getAttribute("cy")],
-                ["stroke", strokeColor],
-                ["stroke-width", options.strokeWidth],
-              ])
-
-              acc.unshift(line)
-            })
-        }
-
-        setAttributes(dot, [
-          ["cx", cx],
-          ["cy", cy],
-          ["r", options.pointSize],
-          ["fill", fill],
-        ])
-        dot.dataset.sha = sha
-
-        const text = shape("text")
-
-        setAttributes(text, [
-          ["x", options.gridSize * (branchNames.length + 1)],
-          ["y", options.gridSize * (repo.log.length - index) + options.pointSize / 2],
-          ["class", "graphText"],
-        ])
-        text.innerHTML = object.comment
-
-        // TODO:
-        // display: branch names, and tags
-
-        acc.push(dot)
-        acc.push(text)
-
-        return acc
-      }, [])
+      .reduce(createGraphPieces.bind({repo, branchOrder, options, historyElement}), [])
       .map((el) => visualElement.appendChild(el))
   }
 
-  return gitGraph
+  window.addEventListener("DOMContentLoaded", () => {
+    Array.from(document.querySelectorAll('[lang="gitGraph"]'))
+      .map(drawGraph)
+  })
+
+  return {drawGraph}
 }())
