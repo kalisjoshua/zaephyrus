@@ -1,7 +1,8 @@
 module.exports = {
   GET(request, response) {
-    response.body = `entity ${request.data.resourceID}`
+    response.body = `<svg></svg>`
     response.status = 200
+    response.contentType = {'Content-type': 'image/svg+xml'}
 
     return response
   },

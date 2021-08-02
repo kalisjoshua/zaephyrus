@@ -3,7 +3,6 @@ const http = require('http')
 const path = require('path')
 const {URL} = require('url')
 
-const contentTypeJSON = {'Content-type': 'application/json'}
 const routes = []
 
 const fullPath = (...parts) => path.join(__dirname, ...parts)
@@ -28,22 +27,22 @@ function bodyParser(request) {
 }
 
 function handler(request, response) {
+  const start = Date.now()
+
   request.method = request.method.toUpperCase()
   request.url = new URL(`http://${getHost(request.rawHeaders)}${request.url}`)
 
   console.log(`${request.method} ${request.url}`)
 
   let resourceID
-  const [requestHandler, contentType] = routes
-    .reduce((acc, [route, {collection, entity, contentType}]) => {
-      if (acc || !route.test(request.url.pathname)) {
-        return acc
-      }
+  const requestHandler = routes
+    .reduce((acc, {collection, entity, route}) => {
+      if (acc || !route.test(request.url.pathname)) return acc
 
       resourceID = (request.url.pathname.match(route) || [])[1]
 
-      return [(resourceID ? entity : collection)[request.method], contentType]
-    }, false) || []
+      return (resourceID ? entity : collection)[request.method]
+    }, false)
 
   const pendingResponse = !requestHandler
     ? Promise.resolve({body: 'Not Found.', status: 404})
@@ -58,46 +57,39 @@ function handler(request, response) {
 
   pendingResponse
     .then(({body, status} = {}) => {
-      console.log(`${status || 500} ${request.method} ${request.url.pathname}`)
+      const contentType = response.contentType || {'Content-type': 'text/plain'}
+
       response.writeHead(status || 500, contentType)
-      response.end(JSON.stringify(body || ''))
+      response.end(body && contentType['Content-type'] === 'application/json'
+        ? JSON.stringify(body)
+        : body)
+      console.log([
+        status || 500,
+        request.method,
+        request.url.pathname,
+        `(took ${Date.now() - start} miliseconds).`,
+      ].join(' '))
     })
-}
-
-function register({route, ...resourceConfig}) {
-  // TODO: add error checking for regex and function
-  routes.push([route, {
-    contentType: contentTypeJSON,
-    ...resourceConfig,
-  }])
-
-  return module.exports
-}
-
-function resources (dir = 'resources') {
-  fs.readdirSync(fullPath(dir))
-    .forEach((str) => {
-      const resource = require(fullPath(dir, str))
-      const route = str.replace(/\.js$/, '')
-
-      resource.route = new RegExp(`^\\/${route}(?:\\/(.*))?$`, 'i')
-
-      register(resource)
-    })
-
-  return module.exports
-}
-
-function start(port = 8888) {
-  http
-    .createServer(handler)
-    .listen(port)
-
-  console.log(`Server running at http://127.0.0.1:${port}`)
 }
 
 module.exports = {
-  register,
-  resources,
-  start,
+  resources (dir = 'resources') {
+    fs.readdirSync(fullPath(dir))
+      .forEach((route) => {
+        routes.push({
+          collection: require(fullPath(dir, route, '_collection.js')),
+          entity: require(fullPath(dir, route, '_entity.js')),
+          route: new RegExp(`^\\/${route}(?:\\/(.*))?$`, 'i'),
+        })
+      })
+
+    return this
+  },
+  start (port = 8888) {
+    http
+      .createServer(handler)
+      .listen(port)
+
+    console.log(`Server running at http://127.0.0.1:${port}`)
+  },
 }
