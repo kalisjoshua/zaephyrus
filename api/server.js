@@ -1,7 +1,7 @@
-const fs = require('fs')
-const http = require('http')
-const path = require('path')
-const {URL} = require('url')
+const fs = require("fs")
+const http = require("http")
+const path = require("path")
+const {URL} = require("url")
 
 const routes = []
 
@@ -14,13 +14,13 @@ function bodyParser(request) {
 
   return new Promise((resolve, reject) => {
     request
-      .on('error', () => reject(new Error('Error receiving the request body.')))
-      .on('data', (chunk) => body.push(chunk))
-      .on('end', () => {
+      .on("error", () => reject(new Error("Error receiving the request body.")))
+      .on("data", (chunk) => body.push(chunk))
+      .on("end", () => {
         try {
-          resolve(body.length ? JSON.parse(Buffer.concat(body).toString()) : '')
+          resolve(body.length ? JSON.parse(Buffer.concat(body).toString()) : "")
         } catch (e) {
-          reject(new Error('Error parsing the request body.'))
+          reject(new Error("Error parsing the request body."))
         }
       })
   })
@@ -35,34 +35,46 @@ function handler(request, response) {
   console.log(`${request.method} ${request.url}`)
 
   let resourceID
-  const requestHandler = routes
+  const resource = routes
     .reduce((acc, {collection, entity, route}) => {
       if (acc || !route.test(request.url.pathname)) return acc
 
       resourceID = (request.url.pathname.match(route) || [])[1]
 
-      return (resourceID ? entity : collection)[request.method]
+      return resourceID ? entity : collection
     }, false)
 
-  const pendingResponse = !requestHandler
-    ? Promise.resolve({body: 'Not Found.', status: 404})
-    : bodyParser(request)
-      .then((body) => requestHandler({
-        ...request,
-        body,
-        data: {resourceID},
-      }, response))
-      .then((body) => body ? body : Promise.reject('Method not allowed.'))
-      .catch((body) => ({body, status: 400}))
+  const pendingResponse = !resource
+    ? Promise.resolve({body: "Not Found.", status: 404})
+    : !resource[request.method]
+      ? Promise.resolve({body: "Method not allowed.", status: 405})
+      : bodyParser(request)
+        .then((body) => resource[request.method]({
+          ...request,
+          body,
+          data: {resourceID},
+        }, response))
+        .catch((body) => ({body, status: 400}))
 
   pendingResponse
     .then(({body, status} = {}) => {
-      const contentType = response.contentType || {'Content-type': 'text/plain'}
+      const plaintext = {"Content-type": "text/plain"}
+      const contentType = response.contentType || plaintext
 
-      response.writeHead(status || 500, contentType)
-      response.end(body && contentType['Content-type'] === 'application/json'
-        ? JSON.stringify(body)
-        : body)
+      if (body instanceof Error || status >= 500) {
+        const msg = "Internal server error."
+
+        console.log(body)
+
+        response.writeHead(status || 500, msg, plaintext)
+        response.end(msg)
+      } else {
+        response.writeHead(status || 200, contentType)
+        response.end(body && contentType["Content-type"] === "application/json"
+          ? JSON.stringify(body)
+          : body)
+      }
+
       console.log([
         status || 500,
         request.method,
@@ -73,13 +85,13 @@ function handler(request, response) {
 }
 
 module.exports = {
-  resources (dir = 'resources') {
+  resources (dir = "resources") {
     fs.readdirSync(fullPath(dir))
       .forEach((route) => {
         routes.push({
-          collection: require(fullPath(dir, route, '_collection.js')),
-          entity: require(fullPath(dir, route, '_entity.js')),
-          route: new RegExp(`^\\/${route}(?:\\/(.*))?$`, 'i'),
+          collection: require(fullPath(dir, route, "_collection.js")),
+          entity: require(fullPath(dir, route, "_entity.js")),
+          route: new RegExp(`^\\/${route}(?:\\/(.*))?$`, "i"),
         })
       })
 

@@ -1,0 +1,15 @@
+{
+  "name": "svg-git-graph",
+  "version": "0.1.0",
+  "description": "",
+  "main": "svg-git-graph.js",
+  "scripts": {
+    "test": "jest api",
+    "start": "jest --coverage --watch api"
+  },
+  "author": "Joshua T Kalis <kalisjoshua@gmail.com> (http://kalisjoshua.me/)",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^27.0.6"
+  }
+}
