@@ -2,9 +2,16 @@
   "name": "zaephyrus",
   "version": "1.0.0",
   "description": "zaephyr.us - an API",
+  "engines": {
+    "node": "14.x"
+  },
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kalisjoshua/zaephyrus"
   },
   "author": "Joshua T Kalis <kalisjoshua@gmail.com> (http://kalisjoshua.me/)",
   "license": "MIT"
