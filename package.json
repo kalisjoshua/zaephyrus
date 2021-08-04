@@ -1,15 +1,11 @@
 {
-  "name": "svg-git-graph",
-  "version": "0.1.0",
-  "description": "",
-  "main": "svg-git-graph.js",
+  "name": "zaephyrus",
+  "version": "1.0.0",
+  "description": "zaephyr.us - an API",
+  "main": "src/index.js",
   "scripts": {
-    "test": "jest api",
-    "start": "jest --coverage --watch api"
+    "start": "node src/index.js"
   },
   "author": "Joshua T Kalis <kalisjoshua@gmail.com> (http://kalisjoshua.me/)",
-  "license": "MIT",
-  "devDependencies": {
-    "jest": "^27.0.6"
-  }
+  "license": "MIT"
 }

@@ -76,7 +76,9 @@ class Graph {
         break
       case 't':
         if (this.tags[argument]) {
-          this.objects[this.tags[argument]].tags = this.objects[this.tags[argument]].tags
+          const ref = this.objects[this.tags[argument]]
+
+          ref.tags = ref.tags
             .filter((tag) => tag !== argument)
         }
 
@@ -103,7 +105,6 @@ class Graph {
       .map((sha) => this.objects[sha].branch)))
     const branchOrder = (name) => branchNames.indexOf(name) + 1
     const graphHeight = (this.log.length + 1) * this.options.gridSize
-    // const graphWidth = this.options.gridSize * (branchNames.length + 1)
     const graphWidth = 960
 
     const elements = this.log
@@ -150,6 +151,9 @@ class Graph {
     })}>
       <defs>
         <style type="text/css"><![CDATA[
+          svg {
+            background: white;
+          }
           svg text {
             font-family: monospace;
             font-size: ${this.options.fontSize}px;
@@ -173,11 +177,18 @@ class Graph {
       .join(' ')
       .trim()
 
-    const branch = this.branches[object.branch].head === object.sha
-      ? this.svgRect(object.branch, {stroke: this.options.colors[2], ...config})
-      : false
+    const branch = this.branches[object.branch].head !== object.sha
+      ? false
+      : this.svgRect(object.branch, {
+        fill: "white",
+        stroke: object.svgProps.fill,
+        ...config
+      })
     const tags = (object.tags || [])
-      .map((tag) => this.svgRect(tag, {...config}))
+      .map((tag) => this.svgRect(tag, {
+        ...config,
+        fill: "gainsboro",
+      }))
 
     if (branch) {
       tags.unshift(branch)
@@ -238,18 +249,12 @@ class Graph {
   }
 
   svgRect (text, config) {
-    const scaling = text.length > 10
-      ? .7
-      : text.length > 5
-        ? .8
-        : .9
+    const scaling = [.9, .8, .7, .6][int(text.length / int(this.options.fontSize / 2))]
     const width = int(text.length * this.options.fontSize * scaling)
 
     return `<rect${attrs({
-      fill: "white",
       height: int(this.options.fontSize * 1.5),
       rx: int(this.options.fontSize / 2),
-      stroke: this.options.colors[3],
       title: text,
       width,
       ...config,
