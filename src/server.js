@@ -63,8 +63,9 @@ function handler(request, response) {
 
       if (body instanceof Error || status >= 500) {
         const msg = "Internal server error."
+        const starbar = Array(30).join("*")
 
-        console.log(body)
+        console.log([starbar, msg, body, starbar].join("\n\n"))
 
         response.writeHead(status || 500, msg, plaintext)
         response.end(msg)
