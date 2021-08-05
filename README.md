@@ -2,6 +2,11 @@
 
 A utility API for various things.
 
+## TODO
+
+  * [ ] Animate the graph timeline
+  * [ ] Make `docs/index.html` a usable playground for building graphs and getting usable links
+
 
 ## /graphs
 
