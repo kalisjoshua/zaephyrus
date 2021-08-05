@@ -88,7 +88,15 @@ function handler(request, response) {
         .then(() => absPath)
     })
 
-  Promise.any(isStatic)
+  // TODO: when using nodejs >= 15 change to Promise.any() instead
+  Promise.all(isStatic)
+    .then((all) => {
+      const [absPath] = all.filter(Boolean)
+
+      return absPath
+        ? Promise.resolve(absPath)
+        : Promise.reject(new Error("not really an error; just not static"))
+    })
     .then((absPath) => handleStatic(absPath, response))
     .catch(() => handleDynamic(request, response))
     .then(({body, status} = {}) => {
