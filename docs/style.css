@@ -1,0 +1,54 @@
+body {
+  margin: 0 auto;
+  max-width: 60em;
+}
+figure.gitGraph, figure.gitGraph * {
+  box-sizing: border-box;
+}
+
+figure.gitGraph {
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+figure.gitGraph div {
+  left: 0;
+  overflow: scroll;
+  position: absolute;
+  top: 0;
+}
+
+figure.gitGraph ol {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: space-around;
+  margin: 0;
+  padding: 0;
+}
+
+figure.gitGraph ol li {
+  font-family: monospace, sans-serif;
+  list-style-type: none;
+  white-space: nowrap;
+}
+
+figure.gitGraph svg {
+  box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+figure.gitGraph .branch {
+  border: 1px solid;
+  border-radius: 5px;
+  margin-right: 1ex;
+  padding: 0 1ex;
+}
+
+figure.gitGraph .tag {
+  background: gainsboro;
+  border: 1px solid gainsboro;
+  border-radius: 5px;
+  margin-right: 1ex;
+  padding: 0 1ex;
+}
