@@ -1,9 +1,11 @@
 {
   "name": "zaephyrus",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "zaephyr.us - an API",
+  "homepage": "https://github.com/kalisjoshua/zaephyrus",
   "engines": {
-    "node": "14.x"
+    "node": "^14.x",
+    "npm": "^6.x"
   },
   "main": "src/index.js",
   "scripts": {
