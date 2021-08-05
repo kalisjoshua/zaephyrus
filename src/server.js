@@ -1,10 +1,15 @@
 const fs = require("fs")
+const fsPromise = require("fs/promises")
 const http = require("http")
 const path = require("path")
 const {URL} = require("url")
 
-const routes = []
+const mimes = require("./mimes.json")
 
+const routes = []
+const static = []
+
+const contentTypeHeader = (type) => ({"Content-type": mimes[type] || mimes.text})
 const fullPath = (...parts) => path.join(__dirname, ...parts)
 const getHost = (list) => list
   .reduce((acc, str, i) => acc || (/^host$/i.test(str) ? list[i + 1] : acc), !1)
@@ -26,14 +31,7 @@ function bodyParser(request) {
   })
 }
 
-function handler(request, response) {
-  const start = Date.now()
-
-  request.method = request.method.toUpperCase()
-  request.url = new URL(`http://${getHost(request.rawHeaders)}${request.url}`)
-
-  console.log(`${request.method} ${request.url}`)
-
+function handleDynamic (request, response) {
   let resourceID
   const resource = routes
     .reduce((acc, {collection, entity, route}) => {
@@ -44,7 +42,7 @@ function handler(request, response) {
       return resourceID ? entity : collection
     }, false)
 
-  const pendingResponse = !resource
+  return !resource
     ? Promise.resolve({body: "Not Found.", status: 404})
     : !resource[request.method]
       ? Promise.resolve({body: "Method not allowed.", status: 405})
@@ -55,22 +53,66 @@ function handler(request, response) {
           data: {resourceID},
         }, response))
         .catch((body) => ({body, status: 400}))
+}
 
-  pendingResponse
+function handleStatic (absPath, response) {
+
+  return fsPromise.readFile(absPath, 'utf8')
+    .then((body) => {
+      const [ext] = (/\.([^$]+)$/.exec(absPath) || []).slice(1)
+
+      response.contentType = contentTypeHeader(ext)
+
+      return {body, status: 200}
+    })
+}
+
+function handler(request, response) {
+  const start = Date.now()
+
+  if (request.url === "/") {
+    request.url = "/index.html"
+  }
+
+  request.method = request.method.toUpperCase()
+  request.url = new URL(`http://${getHost(request.rawHeaders)}${request.url}`)
+
+  console.log(`${request.method} ${request.url}`)
+
+  const isStatic = static
+    .map((staticPath) => {
+      const absPath = path
+        .join(__dirname, "..", staticPath, request.url.pathname)
+
+      return fsPromise.stat(absPath)
+        .then(() => absPath)
+    })
+
+  // TODO: when using nodejs >= 15 change to Promise.any() instead
+  Promise.all(isStatic)
+    .then((all) => {
+      const [absPath] = all.filter(Boolean)
+
+      return absPath
+        ? Promise.resolve(absPath)
+        : Promise.reject(new Error("not really an error; just not static"))
+    })
+    .then((absPath) => handleStatic(absPath, response))
+    .catch(() => handleDynamic(request, response))
     .then(({body, status} = {}) => {
-      const plaintext = {"Content-type": "text/plain"}
+      const plaintext = contentTypeHeader("text")
       const contentType = response.contentType || plaintext
 
       if (body instanceof Error || status >= 500) {
         const msg = "Internal server error."
 
-        console.log(body)
+        console.log(msg, '\n\n', body, '\n\n')
 
         response.writeHead(status || 500, msg, plaintext)
         response.end(msg)
       } else {
         response.writeHead(status || 200, contentType)
-        response.end(body && contentType["Content-type"] === "application/json"
+        response.end(body && contentType["Content-type"] === mimes.json
           ? JSON.stringify(body)
           : body)
       }
@@ -104,4 +146,11 @@ module.exports = {
 
     console.log(`Server running at http://127.0.0.1:${port}`)
   },
+  static (staticPath) {
+    if (fs.statSync(path.join(__dirname, "..", staticPath))) {
+      static.push(staticPath)
+    }
+
+    return this
+  }
 }
