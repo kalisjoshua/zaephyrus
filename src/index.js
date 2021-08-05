@@ -1,3 +1,3 @@
 require('./server.js')
   .resources()
-  .start()
+  .start(process.env.PORT || 8000)
