@@ -1,0 +1,45 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: sans-serif;
+  margin: 0 auto;
+  max-width: 60em;
+  padding-bottom: 2em;
+}
+
+figure {
+  margin: 0;
+}
+
+p code {
+  background: gainsboro;
+  border-radius: 0.5ex;
+  padding: 0 1ex;
+}
+
+pre.demo {
+  background: gainsboro;
+  border-radius: 1ex;
+  overflow: auto;
+  padding: 0 2ex;
+}
+
+.editor {
+  margin: 0;
+  padding: 0;
+}
+
+.editor textarea {
+  height: 12em;
+  width: 100%;
+}
+
+.editor textarea.error {
+  border: 1px solid red;
+}
+
+.zaephyrus--svg {
+  box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.1);
+}

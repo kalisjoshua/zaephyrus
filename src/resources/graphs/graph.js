@@ -1,15 +1,21 @@
 // TODO: animation of the progress through time using css keyframes
 
-const GRID = 40
 const attrs = (obj) => Reflect
   .ownKeys(obj)
   .sort()
   .reduce((acc, key) => `${acc} ${key}="${obj[key]}"`, '')
 const int = (s) => parseInt(s, 10)
-const use = (e, fn) => fn(e)
+const textToQS = (text) => text
+  .trim()
+  .split('\n')
+  .map((line) => line.trim())
+  .filter(Boolean)
+  .map((line) => line.split(" "))
+  .reduce((acc, [[command], ...rest]) => `${acc}&${command}=${rest.join(" ")}`,"")
+  .replace(/^&|"/g, "")
 
 class Graph {
-  constructor (commands = '', options = {}) {
+  constructor (commands = '', options = {grid: 40}) {
     this.options = {
       colors: [
         "#603AA1",
@@ -19,9 +25,9 @@ class Graph {
         "#C8102E",
       ],
       fontSize: 14,
-      gridSize: GRID,
-      pointSize: GRID / 4,
-      strokeWidth: GRID / 5,
+      gridSize: options.grid,
+      pointSize: options.grid / 4,
+      strokeWidth: options.grid / 5,
       ...options
     }
 
@@ -43,7 +49,7 @@ class Graph {
     const id = Math.random().toString(36).slice(2, 7).toLowerCase()
     let stateChange = true
 
-    switch (command.toLowerCase()) {
+    switch (command.toLowerCase()[0]) {
       case 'b':
         this.branches[argument] = this.branches[argument] || {
           head: null,
@@ -82,10 +88,15 @@ class Graph {
             .filter((tag) => tag !== argument)
         }
 
-        (function (current) {
-          current.tags = (current.tags || [])
-            .concat(argument)
-        }(this.objects[this.branches[this.head].head]))
+        if (this.branches[this.head].head) {
+          (function (current) {
+            current.tags = (current.tags || [])
+              .concat(argument)
+          }(this.objects[this.branches[this.head].head]))
+        } else {
+          // throw new Error(`A tag must be added to a commit; there is no commit available to tag.`)
+          // TODO: need to figure out how to send this error back or not have it be an error...
+        }
 
         this.tags[argument] = this.branches[this.head].head
         break
@@ -269,5 +280,6 @@ class Graph {
 }
 
 module.exports = {
-  createGraph: (commands, options) => new Graph(commands, options).render()
+  createGraph: (commands, options) => new Graph(commands, options).render(),
+  textToQS,
 }

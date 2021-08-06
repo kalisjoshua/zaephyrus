@@ -1,4 +1,4 @@
 require('./server.js')
   .resources()
-  .static("/docs")
+  .static("/demo")
   .start(process.env.PORT || 8000)

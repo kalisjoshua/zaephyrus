@@ -1,0 +1,140 @@
+<!DOCTYPE html />
+<html lang="en" dir="ltr" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SVG Git Graph</title>
+
+  <!-- <base href="http://localhost:5000" /> -->
+
+  <link href="/favicon.ico" rel="icon" />
+  <link href="/chimera.svg" rel="icon" type="image/svg+xml" />
+  <link href="/normalize.css" rel="stylesheet" />
+  <link href="/style.css" rel="stylesheet" />
+</head>
+<body>
+  <h1>Zaephyrus Usage</h1>
+
+  <p>There are basically two ways to use Zaephyrus: as an image, and as text. Requesting an image from the API will generate the SVG on the server. Zaephyrus can be run as a client-side script to parse the text and replace it with SVG generate the SVG in the browser.</p>
+
+  <p><em>The biggest difference between the two options is how much control will be available in the styling of the SVG elements; rendering the objects client-side will allow for more options when styling.</em></p>
+
+  <h2>Zaephyrus Grammar</h2>
+
+  <p>There are only four parts to the grammar: branch (b), commit (c), merge (m), and tag (t). This isn't much but enables creating rather complex diagrams and covers most use cases.</p>
+
+
+  <h2>Zaephyrus Playground</h2>
+
+  <p>The <code>/graphs</code> endpoint enables the creation of adhoc Git history graphs as SVG images; for embedding into Markdown documents on GitHub for instance. This "playground" helps with learning the simplified Git syntax to build image URLs.</p>
+
+  <figure class="editor">
+    <textarea>
+branch main
+commit "initial commit"
+tag v1.0.0
+branch feature-branch
+commit "make it work"
+commit "make it better"
+branch main
+merge feature-branch
+tag v1.1.0
+    </textarea>
+  </figure>
+
+
+  <h2>Zaephyrus Text</h2>
+
+  <p>The client-side script will look for <code>pre</code> tags with the language attribute set to "zaephyrus" (as seen below) and will replace it with the SVG graph.</p>
+
+
+  <h3>HTML PRE Tag Include</h3>
+
+  <pre class="demo"><code contenteditable>
+&lt;pre lang="zaephyrus">
+  branch main
+  commit "initial commit"
+  tag v1.0.0
+  branch feature-branch
+  commit "make it work"
+  commit "make it better"
+  branch main
+  merge feature-branch
+  tag v1.1.0
+&lt;/pre>
+
+&lt;!-- ... -->
+
+&lt;script defer src="http://zaephyr.us/graphs/zaephyrus.js">&lt;/script>
+  </code></pre>
+
+  <pre lang="zaephyrus">
+    branch main
+    commit "initial commit"
+    tag v1.0.0
+    branch feature-branch
+    commit "make it work"
+    commit "make it better"
+    branch main
+    merge feature-branch
+    tag v1.1.0
+  </pre>
+
+
+  <h3>Markdown Fenced Code Block</h3>
+
+  <p>A fenced code block using zaephyrus would look like this (below), and would get rendered into looking similar to the HTML PRE tag include (above).</p>
+
+  <pre class="demo"><code>
+``` zaephyrus
+  branch main
+  commit "initial commit"
+  tag v1.0.0
+  branch feature-branch
+  commit "make it work"
+  commit "make it better"
+  branch main
+  merge feature-branch
+  tag v1.1.0
+```
+  </code></pre>
+
+  <pre lang="zaephyrus">
+    branch main
+    commit "initial commit"
+    tag v1.0.0
+    branch feature-branch
+    commit "make it work"
+    commit "make it better"
+    branch main
+    merge feature-branch
+    tag v1.1.0
+  </pre>
+
+
+  <h2>Zaephyrus Image</h2>
+
+  <p>The images can also be created on "the server" instead of relying on client-side processing. This can be accomplished with <code>img</code> tags in html or image references in Markdown.</p>
+
+
+  <h3>HTML IMG Tag</h3>
+
+  <pre class="demo"><code>
+&lt;img src="http://zaephyr.us/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch" />
+  </code></pre>
+
+  <img class="zaephyrus--svg" src="http://zaephyr.us/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch" alt="git history graph" />
+
+
+  <h3>Markdown Image Reference</h3>
+
+  <pre class="demo"><code>
+![git history graph](http://zaephyr.us/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch)
+  </code></pre>
+
+  <img class="zaephyrus--svg" src="http://zaephyr.us/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch" alt="git history graph">
+
+<script defer src="/graphs/zaephyrus.js"></script>
+<script async defer src="/demo.js"></script>
+</body>
+</html>
