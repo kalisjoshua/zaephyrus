@@ -2,15 +2,10 @@
 
 A utility API for various things.
 
-## TODO
-
-  * [ ] Animate the graph timeline
-  * [ ] Make `docs/index.html` a usable playground for building graphs and getting usable links
-
 
 ## /graphs
 
-The `/graphs` resource will generate an SVG Git history graph for use as images in documentation; e.g. in markdown documents on GitHub (the initial use case).
+Explaining complex topics can often be difficult with words alone; adding graphical representation can help with understanding. This API enables creating adhoc graphics for, potentially, complex infomation specifically from mock Git histories. The `/graphs` resource will generate an SVG Git history graph for use as images in documentation; e.g. in markdown documents on GitHub (the initial use case).
 
 ``` html
 <img src="https://zaephyrus.herokuapp.com/graphs?b=main&c=&t=v1.0.0&t=latest&t=release-candidate&t=stable&b=story-313&c=make%20it%20work&c=make%20it%20better&c=make%20it%20fast&b=main&m=story-313&t=v1.1.0&t=latest&t=release-candidate" />
@@ -21,6 +16,7 @@ The `/graphs` resource will generate an SVG Git history graph for use as images 
 ```
 
 ![](https://zaephyrus.herokuapp.com/graphs?b=main&c=&t=v1.0.0&t=latest&t=release-candidate&t=stable&b=story-313&c=make%20it%20work&c=make%20it%20better&c=make%20it%20fast&b=main&m=story-313&t=v1.1.0&t=latest&t=release-candidate)
+
 
 ### Syntax
 

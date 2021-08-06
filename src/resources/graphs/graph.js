@@ -1,11 +1,24 @@
 // TODO: animation of the progress through time using css keyframes
 
 const GRID = 40
+const commandsMap = {checkout: "b", commit: "c", merge: "m", tag: "t"}
+// [fake commands]   $    git    command      argument
+const rCommand = /^\$\s*git\s+([^\s]+)\s+([^$]+)$/
+
 const attrs = (obj) => Reflect
   .ownKeys(obj)
   .sort()
   .reduce((acc, key) => `${acc} ${key}="${obj[key]}"`, '')
 const int = (s) => parseInt(s, 10)
+const textToQS = (text) => text
+  .trim()
+  .split('\n')
+  .map((line) => {
+    const [command, arg] = (rCommand.exec(line.trim()) || []).slice(1)
+
+    return [commandsMap[command], arg.replaceAll('"', "")].join('=')
+  })
+  .join('&')
 const use = (e, fn) => fn(e)
 
 class Graph {
@@ -269,5 +282,6 @@ class Graph {
 }
 
 module.exports = {
-  createGraph: (commands, options) => new Graph(commands, options).render()
+  createGraph: (commands, options) => new Graph(commands, options).render(),
+  textToQS,
 }

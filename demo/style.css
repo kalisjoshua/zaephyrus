@@ -1,25 +1,40 @@
 body {
+  font-family: sans-serif;
   margin: 0 auto;
   max-width: 60em;
 }
-figure.gitGraph, figure.gitGraph * {
+
+p code {
+  background: gainsboro;
+  border-radius: 0.5ex;
+  padding: 0 1ex;
+}
+
+pre.demo {
+  background: gainsboro;
+  border-radius: 1ex;
+  overflow: auto;
+  padding: 0 2ex;
+}
+
+figure.zaephyrus--svg, figure.zaephyrus--svg * {
   box-sizing: border-box;
 }
 
-figure.gitGraph {
+figure.zaephyrus--svg {
   margin: 0;
   padding: 0;
   position: relative;
 }
 
-figure.gitGraph div {
+figure.zaephyrus--svg div {
   left: 0;
   overflow: scroll;
   position: absolute;
   top: 0;
 }
 
-figure.gitGraph ol {
+figure.zaephyrus--svg ol {
   display: flex;
   flex-direction: column-reverse;
   justify-content: space-around;
@@ -27,25 +42,25 @@ figure.gitGraph ol {
   padding: 0;
 }
 
-figure.gitGraph ol li {
+figure.zaephyrus--svg ol li {
   font-family: monospace, sans-serif;
   list-style-type: none;
   white-space: nowrap;
 }
 
-figure.gitGraph svg {
+figure.zaephyrus--svg svg {
   box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.1);
   width: 100%;
 }
 
-figure.gitGraph .branch {
+figure.zaephyrus--svg .branch {
   border: 1px solid;
   border-radius: 5px;
   margin-right: 1ex;
   padding: 0 1ex;
 }
 
-figure.gitGraph .tag {
+figure.zaephyrus--svg .tag {
   background: gainsboro;
   border: 1px solid gainsboro;
   border-radius: 5px;
