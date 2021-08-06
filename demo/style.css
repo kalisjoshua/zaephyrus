@@ -1,7 +1,16 @@
+* {
+  box-sizing: border-box;
+}
+
 body {
   font-family: sans-serif;
   margin: 0 auto;
   max-width: 60em;
+  padding-bottom: 2em;
+}
+
+figure {
+  margin: 0;
 }
 
 p code {
@@ -17,53 +26,20 @@ pre.demo {
   padding: 0 2ex;
 }
 
-figure.zaephyrus--svg, figure.zaephyrus--svg * {
-  box-sizing: border-box;
-}
-
-figure.zaephyrus--svg {
-  margin: 0;
-  padding: 0;
-  position: relative;
-}
-
-figure.zaephyrus--svg div {
-  left: 0;
-  overflow: scroll;
-  position: absolute;
-  top: 0;
-}
-
-figure.zaephyrus--svg ol {
-  display: flex;
-  flex-direction: column-reverse;
-  justify-content: space-around;
+.editor {
   margin: 0;
   padding: 0;
 }
 
-figure.zaephyrus--svg ol li {
-  font-family: monospace, sans-serif;
-  list-style-type: none;
-  white-space: nowrap;
-}
-
-figure.zaephyrus--svg svg {
-  box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.1);
+.editor textarea {
+  height: 12em;
   width: 100%;
 }
 
-figure.zaephyrus--svg .branch {
-  border: 1px solid;
-  border-radius: 5px;
-  margin-right: 1ex;
-  padding: 0 1ex;
+.editor textarea.error {
+  border: 1px solid red;
 }
 
-figure.zaephyrus--svg .tag {
-  background: gainsboro;
-  border: 1px solid gainsboro;
-  border-radius: 5px;
-  margin-right: 1ex;
-  padding: 0 1ex;
+.zaephyrus--svg {
+  box-shadow: 0 0 5px 5px rgba(0, 0, 0, 0.1);
 }

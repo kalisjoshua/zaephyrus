@@ -1,53 +1,44 @@
 (function () {
-  const style = document.createElement("style")
-
-  style.textContent = `
-    .editor {
-      margin: 0;
-      padding: 0;
-    }
-
-    .editor textarea {
-      height: 10em;
-      width: 100%;
-    }
-  `
-
   const debounce = (fn, delay = 400, pending) => (...args) => {
     pending && clearTimeout(pending)
 
     pending = setTimeout(() => fn(...args), delay)
   }
 
-  function editor (figure) {
+  function buildEditor (figure) {
     const img = document.createElement("img")
     const pre = document.createElement("pre")
     const textarea = figure.querySelector("textarea")
 
     figure.appendChild(pre)
     figure.appendChild(img)
+    img.classList.add("zaephyrus--svg")
     pre.classList.add("demo")
-    textarea.addEventListener("keydown", debounce(editorChange))
+    textarea.addEventListener("keydown", debounce(keydownHandler))
     textarea.img = img
     textarea.pre = pre
     textarea.value = textarea.value.trim()
 
-    editorChange({target: textarea})
+    keydownHandler({target: textarea})
   }
 
-  function editorChange ({target}) {
-    const qs = encodeURI(zaephyrus.textToQS(target.value))
+  function keydownHandler ({target}) {
+    target.classList.remove("error")
 
-    target.img.src = `${window.location.href}graphs?${qs}`
-    target.pre.innerHTML = `<code>\n&lt;img src="${target.img.src}" />\n\n</code>`
+    try {
+      const qs = zaephyrus.textToQS(target.value)
+
+      target.img.src = `${window.location.href}graphs?${encodeURI(qs)}`
+      target.pre.innerHTML = `<code>\n&lt;img src="${target.img.src}" />\n\n</code>`
+    } catch (error) {
+      target.classList.add("error")
+    }
   }
 
   function init () {
     Array.from(document.querySelectorAll("figure[class=\"editor\"]"))
-      .forEach(editor)
+      .forEach(buildEditor)
   }
-
-  document.head.appendChild(style)
 
   window.addEventListener("DOMContentLoaded", () => setTimeout(init, 0))
 }())
