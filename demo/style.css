@@ -13,6 +13,12 @@ figure {
   margin: 0;
 }
 
+footer {
+  background: gainsboro;
+  margin: 3em 0;
+  padding: 2ex;
+}
+
 p code {
   background: gainsboro;
   border-radius: 0.5ex;
