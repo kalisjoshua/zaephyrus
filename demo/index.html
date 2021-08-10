@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SVG Git Graph</title>
 
-  <!-- <base href="http://localhost:5000" /> -->
+  <base href="http://localhost:5000" />
+  <base href="http://zaephyr.us" />
 
   <link href="/favicon.ico" rel="icon" />
   <link href="/jk-logo.svg" rel="icon" type="image/svg+xml" />
@@ -22,6 +23,8 @@
   <h2>Zaephyrus Grammar</h2>
 
   <p>There are only four parts to the grammar: branch (b), commit (c), merge (m), and tag (t). This isn't much but enables creating rather complex diagrams and covers most use cases.</p>
+
+  <p>One additional part of the grammar which has no representation in Git is animate (a) which takes one of two possible values: "auto", or "true", and "hover". This will enable animation of the changes to the history.</p>
 
 
   <h2>Zaephyrus Playground</h2>
@@ -120,19 +123,19 @@ tag v1.1.0
   <h3>HTML IMG Tag</h3>
 
   <pre class="demo"><code>
-&lt;img src="http://zaephyr.us/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch" />
+&lt;img src="/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch" />
   </code></pre>
 
-  <img class="zaephyrus--svg" src="http://zaephyr.us/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch" alt="git history graph" />
+  <img class="zaephyrus--svg" src="/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch" alt="git history graph" />
 
 
   <h3>Markdown Image Reference</h3>
 
   <pre class="demo"><code>
-![git history graph](http://zaephyr.us/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch)
+![git history graph](/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch)
   </code></pre>
 
-  <img class="zaephyrus--svg" src="http://zaephyr.us/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch" alt="git history graph">
+  <img class="zaephyrus--svg" src="/graphs?b=main&c=initial%20commit&b=feature-branch&c=make%20it%20work&c=make%20it%20better&b=main&m=feature-branch" alt="git history graph">
 
   <footer>
     <p><a href="https://github.com/kalisjoshua/zaephyrus">Zaephyrus on GitHub</a>; Check it out!</p>

@@ -1,5 +1,3 @@
-// TODO: animation of the progress through time using css keyframes
-
 const attrs = (obj) => Reflect
   .ownKeys(obj)
   .sort()
@@ -16,7 +14,10 @@ const textToQS = (text) => text
 
 class Graph {
   constructor (commands = '', options = {grid: 40}) {
+    const rAnimate = /&a(?:nimate)?=(auto|hover|true)$/
+
     this.options = {
+      animate: (rAnimate.exec(commands) || []).slice(1).shift() || false,
       colors: [
         "#603AA1",
         "#1C6EF2",
@@ -39,7 +40,8 @@ class Graph {
     this.tags = {}
 
     commands
-      .replace(/^\?/, '')
+      .replace(/^\?/, "")
+      .replace(rAnimate, "")
       .split('&')
       .map((line) => line.split('='))
       .forEach((command) => this.execute(command))
@@ -75,6 +77,7 @@ class Graph {
         this.objects[id] = {
           branch: this.head,
           comment: `merge branch '${argument}' into '${this.head}'`,
+          // TODO: links will need to map over all merge heads and add links for each
           links: [this.branches[this.head].head, this.branches[argument].head],
         }
         this.branches[this.head].head = id
@@ -105,45 +108,41 @@ class Graph {
         break
     }
 
-    // if (stateChange) {
-    //   this.snapshots
-    //     .push(JSON.stringify(this))
-    // }
+    if (stateChange && this.options.animate) {
+      this.snapshots
+        .push(this.keyFrame())
+    }
   }
 
-  render (figure) {
+  keyFrame () {
     const branchNames = Array.from(new Set(this.log
       .map((sha) => this.objects[sha].branch)))
     const branchOrder = (name) => branchNames.indexOf(name) + 1
-    const graphHeight = (this.log.length + 1) * this.options.gridSize
-    const graphWidth = 960
 
-    const elements = this.log
+    return this.log
       .flatMap((sha, index) => {
         const object = this.objects[sha]
 
-        object.sha = sha
         object.svgProps = {
           cx: this.options.gridSize * branchOrder(object.branch),
           cy: this.options.gridSize * (this.log.length - index),
           fill: this.options.colors[branchOrder(object.branch) - 1],
         }
-        object.links = object.links
-          .map((sha) => this.svgLine({
-            x1: this.objects[sha].svgProps.cx,
-            y1: this.objects[sha].svgProps.cy,
-            x2: object.svgProps.cx,
-            y2: object.svgProps.cy,
-            stroke: object.links.length === 1
-              ? object.svgProps.fill
-              : this.objects[sha].svgProps.fill,
-          }))
         object.svgElement = this.svgCircle({...object.svgProps})
 
         return [
           object,
-          ...object.links,
-          this.renderMeta(object, {
+          ...object.links
+            .map((sha) => this.svgLine({
+              x1: this.objects[sha].svgProps.cx,
+              y1: this.objects[sha].svgProps.cy,
+              x2: object.svgProps.cx,
+              y2: object.svgProps.cy,
+              stroke: object.links.length === 1
+                ? object.svgProps.fill
+                : this.objects[sha].svgProps.fill,
+            })),
+          this.renderMeta(sha, object, {
             x: (branchNames.length + 1) * this.options.gridSize,
             y: parseInt(object.svgProps.cy + this.options.pointSize / 3, 10),
           }),
@@ -153,30 +152,96 @@ class Graph {
       .sort()
       .reverse()
       .join('\n')
+  }
+
+  render () {
+    const animatePaused = this.options.animate === "hover" ? "running" : "paused"
+    const animateTrigger = this.options.animate === "hover" ? ":hover" : ""
+    const classString = "zaephyrus--graph"
+    const graphHeight = (this.log.length + 1) * this.options.gridSize
+    const graphWidth = 960
+
+    let graphs
+
+    switch (this.snapshots.length) {
+      case 0:
+        graphs = this.keyFrame()
+        break
+      case 1:
+        graphs = this.snapshots[0]
+        break
+      default:
+        graphs = this.snapshots
+          .map((snapshot) => `
+            <g class="${classString}__keyframe">
+              <rect fill="white" height="${graphHeight}" width="${graphWidth}" x="0" y="0" />
+              ${snapshot}
+            </g>`)
+          .join("\n")
+        break
+    }
 
     return `
     <svg ${attrs({
-       style: `height: ${graphHeight}px; width: ${graphWidth}px;`,
-       viewBox: `0 0 ${graphWidth} ${graphHeight}`,
-       xmlns: "http://www.w3.org/2000/svg",
+      class: classString,
+      viewBox: `0 0 ${graphWidth} ${graphHeight}`,
+      xmlns: "http://www.w3.org/2000/svg",
     })}>
       <defs>
         <style type="text/css"><![CDATA[
-          svg {
+          svg.${classString} {
+            --duration: calc(1.3s * ${this.snapshots.length});
+            --delay: calc(var(--duration) / ${this.snapshots.length});
+
             background: white;
+            height: ${graphHeight}px;
+            width: ${graphWidth}px;
           }
-          svg text {
+
+          svg.${classString} text {
             font-family: monospace;
             font-size: ${this.options.fontSize}px;
+          }
+
+          svg.${classString} > .${classString}__keyframe {
+            opacity: 0;
+          }
+
+          svg.${classString}:hover > .${classString}__keyframe {
+            animation-play-state: ${animatePaused};
+          }
+
+          svg.${classString} > .${classString}__keyframe:last-of-type {
+            opacity: 1;
+          }
+
+          svg.${classString}${animateTrigger} > .${classString}__keyframe:last-of-type {
+            opacity: 0;
+          }
+
+          svg.${classString}${animateTrigger} > .${classString}__keyframe:first-of-type {
+            opacity: 1;
+          }
+
+          ${!this.options.animate ? '' : this.snapshots.map((_, index) => `
+          svg.${classString}${animateTrigger} > .${classString}__keyframe:nth-of-type(${index + 1}) {
+            animation: slideshow var(--duration) calc(var(--delay) * ${index}) ease infinite;
+          }`).join("\n")}
+
+          @keyframes slideshow {
+            0% { opacity: 1; }
+            ${int(1 / this.snapshots.length * 100) - 1}% { opacity: 1; }
+            ${int(1 / this.snapshots.length * 100)}% { opacity: 0; }
+            100% { opacity: 0; }
           }
         ]]></style>
       </defs>
 
-      ${elements}
+      ${graphs}
     </svg>`
   }
 
-  renderMeta (object, config) {
+  renderMeta (sha, object, config) {
     const text = object.comment
     const maxLength = 50
     const truncated = text.slice(0, maxLength)
@@ -188,7 +253,7 @@ class Graph {
       .join(' ')
       .trim()
 
-    const branch = this.branches[object.branch].head !== object.sha
+    const branch = this.branches[object.branch].head !== sha
       ? false
       : this.svgRect(object.branch, {
         fill: "white",
@@ -242,10 +307,8 @@ class Graph {
       })
 
     return `
-      <g stroke-width="2">
-        <title>${text}</title>
-        ${parts.join('\n')}
-      </g>
+      <title>${text}</title>
+      ${parts.join('\n')}
     `
   }
 
@@ -270,7 +333,7 @@ class Graph {
       width,
       ...config,
       y: config.y - int(this.options.fontSize * 1.1),
-    })} />`
+    })}></rect>`
   }
 
   svgText (text, config) {
